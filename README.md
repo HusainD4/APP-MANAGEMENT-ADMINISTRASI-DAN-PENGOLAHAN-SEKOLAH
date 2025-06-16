@@ -17,7 +17,7 @@
 ### 2. Halaman Manage Admin (Superadmin Only)  
 ![Manage Admin](https://github.com/user-attachments/assets/966127ab-876a-40c7-8425-bc908274ec26)
 
-### 3. Form Login Mengarah ke Halaman Sesuai Role  
+### 3. Form Login Mengarah ke Halaman diatas (halaman manage admin) 
 ![Login Redirect](https://github.com/user-attachments/assets/9a5ba6a4-c95c-472d-bbbb-f64140568152)
 
 ---
