@@ -1,6 +1,6 @@
 # 📌 Progres Project Akhir
 
-## 🎯 Fitur  
+## 🎯 Fitur yg telah di buat
 | No | Fitur                            | Deskripsi                                      |
 |-----|---------------------------------|------------------------------------------------|
 | 1   | Halaman Login                   | Form login untuk memasukkan username dan password  |
