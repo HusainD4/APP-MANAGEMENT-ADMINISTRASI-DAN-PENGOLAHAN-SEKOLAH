@@ -52,7 +52,6 @@ public class LoginForm extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         btn_login = new javax.swing.JButton();
         passwordTXT = new javax.swing.JPasswordField();
-        btn_forgetpass = new javax.swing.JButton();
         jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -171,14 +170,12 @@ public class LoginForm extends javax.swing.JFrame {
                 .addContainerGap(35, Short.MAX_VALUE))
         );
 
-        btn_forgetpass.setText("FORGET PASSWORD");
-        btn_forgetpass.addActionListener(new java.awt.event.ActionListener() {
+        jButton1.setText("MASTER ADMIN");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_forgetpassActionPerformed(evt);
+                jButton1ActionPerformed(evt);
             }
         });
-
-        jButton1.setText("KEY");
 
         javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
         jPanel7.setLayout(jPanel7Layout);
@@ -188,10 +185,7 @@ public class LoginForm extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(jPanel7Layout.createSequentialGroup()
-                        .addComponent(btn_forgetpass)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel7Layout.setVerticalGroup(
@@ -200,9 +194,7 @@ public class LoginForm extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btn_forgetpass)
-                    .addComponent(jButton1))
+                .addComponent(jButton1)
                 .addContainerGap())
         );
 
@@ -278,12 +270,14 @@ public class LoginForm extends javax.swing.JFrame {
         login();
     }//GEN-LAST:event_btn_loginActionPerformed
 
-    private void btn_forgetpassActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_forgetpassActionPerformed
-        JOptionPane.showMessageDialog(this,
-                "Silakan hubungi administrator sekolah untuk mereset password Anda.",
-                "Lupa Password",
-                JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_btn_forgetpassActionPerformed
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        this.dispose(); // Tutup JFrame ini (CreateForm atau yang lainnya)
+
+        // Tampilkan JDialog LoginKeyMaster
+        LoginKeyMaster loginDialog = new LoginKeyMaster(this, true); // `true` artinya modal
+        loginDialog.setLocationRelativeTo(null); // Tampilkan di tengah layar
+        loginDialog.setVisible(true);
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -316,12 +310,14 @@ public class LoginForm extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new LoginForm().setVisible(true);
+                LoginForm loginForm = new LoginForm();
+                loginForm.setExtendedState(JFrame.MAXIMIZED_BOTH); // fullscreen
+                loginForm.setVisible(true);
             }
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btn_forgetpass;
     private javax.swing.JButton btn_login;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
