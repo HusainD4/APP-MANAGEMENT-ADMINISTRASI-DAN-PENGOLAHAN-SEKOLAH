@@ -8,24 +8,81 @@ package ui;
  *
  * @author HUSAIN
  */
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import db.ConnectionDB;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import org.bson.Document;
-import org.mindrot.jbcrypt.BCrypt;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javax.swing.table.DefaultTableModel;
+import java.util.Vector;
+import org.bson.types.ObjectId;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class CreateForm extends javax.swing.JFrame {
 
     /**
      * Creates new form LoginForm
      */
-    public CreateForm() {
+    private String currentUsername;
+
+    public CreateForm(String username) {
         initComponents();
 
+        this.currentUsername = username; // Set username DULU sebelum pengecekan
+
+        if (!isSuperAdmin(currentUsername)) {
+            logoutToLoginForm();
+            this.dispose(); // tutup form ini
+            System.exit(0); // keluar dari aplikasi
+            return;
+        }
+
+        initTableListener();
+        loadUserData();
+        setLocationRelativeTo(null);
+        setTitle("User Management - Admin: " + currentUsername);
+    }
+
+    // Mengecek apakah user adalah superadmin
+    public static boolean isSuperAdmin(String username) {
+        try {
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("master");
+            Document userDoc = collection.find(new Document("username", username)).first();
+            if (userDoc != null) {
+                String role = userDoc.getString("role");
+                return "superadmin".equalsIgnoreCase(role);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // Jika bukan superadmin, logout dan kembali ke login
+    private void logoutToLoginForm() {
+        JOptionPane.showMessageDialog(this, "Anda akan dialihkan ke halaman login.");
+        this.dispose(); // Tutup form CreateForm
+        LoginForm form = new LoginForm();
+        form.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        new LoginForm().setVisible(true); // Buka LoginForm
+    }
+
+    // Tambahkan listener ke tabel
+    private void initTableListener() {
+        tbl_user.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tbl_userMouseClicked(evt);
+            }
+        });
+    }
+
+    private String hashPassword(String plainPassword) {
+        return BCrypt.hashpw(plainPassword, BCrypt.gensalt());
+    }
+
+    private boolean checkPassword(String plainPassword, String hashedPassword) {
+        return BCrypt.checkpw(plainPassword, hashedPassword);
     }
 
     /**
@@ -43,12 +100,13 @@ public class CreateForm extends javax.swing.JFrame {
         jPanel3 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         jPanel6 = new javax.swing.JPanel();
-        tbl_user = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        jscroll = new javax.swing.JScrollPane();
+        tbl_user = new javax.swing.JTable();
         jLabel7 = new javax.swing.JLabel();
-        jToggleButton1 = new javax.swing.JToggleButton();
-        jToggleButton2 = new javax.swing.JToggleButton();
-        jToggleButton3 = new javax.swing.JToggleButton();
+        btn_edit = new javax.swing.JToggleButton();
+        btn_update = new javax.swing.JToggleButton();
+        btn_delete = new javax.swing.JToggleButton();
+        btn_backLogin = new javax.swing.JButton();
         jPanel7 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
         usernameTXT = new javax.swing.JTextField();
@@ -97,43 +155,55 @@ public class CreateForm extends javax.swing.JFrame {
 
         jPanel4.setBackground(new java.awt.Color(255, 255, 255));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tbl_user.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
 
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+                "ID", "NAMA", "NOMOR TELP"
             }
         ));
-        tbl_user.setViewportView(jTable1);
+        tbl_user.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tbl_userMouseClicked(evt);
+            }
+        });
+        jscroll.setViewportView(tbl_user);
 
         jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel7.setForeground(new java.awt.Color(153, 204, 255));
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel7.setText("MANAGE ADMIN");
 
-        jToggleButton1.setBackground(new java.awt.Color(255, 153, 51));
-        jToggleButton1.setText("EDIT");
-        jToggleButton1.addActionListener(new java.awt.event.ActionListener() {
+        btn_edit.setBackground(new java.awt.Color(255, 153, 51));
+        btn_edit.setText("EDIT");
+        btn_edit.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jToggleButton1ActionPerformed(evt);
+                btn_editActionPerformed(evt);
             }
         });
 
-        jToggleButton2.setBackground(new java.awt.Color(153, 255, 51));
-        jToggleButton2.setText("UPDATE");
-        jToggleButton2.addActionListener(new java.awt.event.ActionListener() {
+        btn_update.setBackground(new java.awt.Color(153, 255, 51));
+        btn_update.setText("UPDATE");
+        btn_update.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jToggleButton2ActionPerformed(evt);
+                btn_updateActionPerformed(evt);
             }
         });
 
-        jToggleButton3.setBackground(new java.awt.Color(204, 0, 0));
-        jToggleButton3.setForeground(new java.awt.Color(255, 255, 255));
-        jToggleButton3.setText("DELETE");
-        jToggleButton3.addActionListener(new java.awt.event.ActionListener() {
+        btn_delete.setBackground(new java.awt.Color(204, 0, 0));
+        btn_delete.setForeground(new java.awt.Color(255, 255, 255));
+        btn_delete.setText("DELETE");
+        btn_delete.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jToggleButton3ActionPerformed(evt);
+                btn_deleteActionPerformed(evt);
+            }
+        });
+
+        btn_backLogin.setText("Back To Login");
+        btn_backLogin.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_backLoginActionPerformed(evt);
             }
         });
 
@@ -145,34 +215,34 @@ public class CreateForm extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(tbl_user, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 533, Short.MAX_VALUE)
+                    .addComponent(jscroll, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 533, Short.MAX_VALUE)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel6Layout.createSequentialGroup()
                         .addGap(0, 0, Short.MAX_VALUE)
-                        .addComponent(jToggleButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jToggleButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jToggleButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel6Layout.createSequentialGroup()
+                                .addComponent(btn_delete, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btn_update, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btn_edit, javax.swing.GroupLayout.PREFERRED_SIZE, 95, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(btn_backLogin, javax.swing.GroupLayout.Alignment.TRAILING))))
                 .addContainerGap())
         );
         jPanel6Layout.setVerticalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel6Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(tbl_user, javax.swing.GroupLayout.PREFERRED_SIZE, 379, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jToggleButton1))
-                    .addGroup(jPanel6Layout.createSequentialGroup()
-                        .addGap(436, 436, 436)
-                        .addComponent(jToggleButton2))
-                    .addGroup(jPanel6Layout.createSequentialGroup()
-                        .addGap(436, 436, 436)
-                        .addComponent(jToggleButton3)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap()
+                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jscroll, javax.swing.GroupLayout.PREFERRED_SIZE, 379, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btn_edit)
+                    .addComponent(btn_update)
+                    .addComponent(btn_delete))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btn_backLogin)
+                .addContainerGap())
         );
 
         usernameTXT.addActionListener(new java.awt.event.ActionListener() {
@@ -373,56 +443,159 @@ public class CreateForm extends javax.swing.JFrame {
         btn_submit.doClick();
     }//GEN-LAST:event_confirmpasswordTXTActionPerformed
 
-    private void jToggleButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jToggleButton3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jToggleButton3ActionPerformed
-
-    private void jToggleButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jToggleButton2ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jToggleButton2ActionPerformed
-
-    private void jToggleButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jToggleButton1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jToggleButton1ActionPerformed
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(CreateForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(CreateForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(CreateForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(CreateForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    private void btn_deleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_deleteActionPerformed
+        int selectedRow = tbl_user.getSelectedRow();
+        if (selectedRow < 0) {
+            JOptionPane.showMessageDialog(this, "Silakan pilih user yang akan dihapus.");
+            return;
         }
-        //</editor-fold>
-        //</editor-fold>
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new CreateForm().setVisible(true);
+        String id = (String) tbl_user.getValueAt(selectedRow, 0);
+        String usernameToDelete = (String) tbl_user.getValueAt(selectedRow, 1);
+
+        // Cegah hapus superadmin
+        if ("superadmin".equalsIgnoreCase(usernameToDelete)) {
+            JOptionPane.showMessageDialog(this, "User 'superadmin' tidak boleh dihapus!");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this, "Yakin ingin menghapus user ini?", "Konfirmasi", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("user");
+            collection.deleteOne(new Document("_id", new org.bson.types.ObjectId(id)));
+
+            // Setelah hapus, cek apakah superadmin masih ada
+            if (!isSuperAdmin(currentUsername)) {
+                JOptionPane.showMessageDialog(this, "Hanya admin yang boleh mengakses halaman ini.");
+                this.dispose();
+                return;
+            }
+
+            JOptionPane.showMessageDialog(this, "User berhasil dihapus!");
+            clearForm();
+            loadUserData();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal menghapus user: " + e.getMessage());
+        }
+    }//GEN-LAST:event_btn_deleteActionPerformed
+
+    private void btn_updateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_updateActionPerformed
+        loadUserData();
+    }//GEN-LAST:event_btn_updateActionPerformed
+
+    private void btn_editActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_editActionPerformed
+        if (!isSuperAdmin(currentUsername)) {
+            JOptionPane.showMessageDialog(this, "Hanya admin yang boleh mengakses halaman ini.");
+            this.dispose();
+            return;
+        }
+
+        int selectedRow = tbl_user.getSelectedRow();
+        if (selectedRow < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih user yang akan diupdate dari tabel!");
+            return;
+        }
+
+        String id = (String) tbl_user.getValueAt(selectedRow, 0);
+        String username = usernameTXT.getText().trim();
+        String phone = phonenumberTXT.getText().trim();
+        String password = new String(passwordTXT.getPassword()).trim();
+        String confirmPassword = new String(confirmpasswordTXT.getPassword()).trim();
+
+        if (username.isEmpty() || phone.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username dan Nomor Telepon tidak boleh kosong!");
+            return;
+        }
+
+        if (!password.isEmpty() && !password.equals(confirmPassword)) {
+            JOptionPane.showMessageDialog(this, "Password dan Konfirmasi Password tidak cocok!");
+            return;
+        }
+
+        try {
+            Document updateDoc = new Document("username", username)
+                    .append("phone", phone);
+
+            if (!password.isEmpty()) {
+                String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+                updateDoc.append("password", hashedPassword);
+            }
+
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("user");
+            collection.updateOne(
+                    new Document("_id", new org.bson.types.ObjectId(id)),
+                    new Document("$set", updateDoc)
+            );
+
+            JOptionPane.showMessageDialog(this, "User berhasil diupdate!");
+            clearForm();
+            loadUserData();
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(this, "ID user tidak valid: " + id);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal update user: " + e.getMessage());
+        }
+    }//GEN-LAST:event_btn_editActionPerformed
+
+    private void tbl_userMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tbl_userMouseClicked
+        int selectedRow = tbl_user.getSelectedRow();
+        if (selectedRow >= 0) {
+            String username = (String) tbl_user.getValueAt(selectedRow, 1); // kolom username
+            String phone = (String) tbl_user.getValueAt(selectedRow, 2);    // kolom phone
+
+            usernameTXT.setText(username);
+            phonenumberTXT.setText(phone);
+            passwordTXT.setText("");
+            confirmpasswordTXT.setText("");
+        }
+    }//GEN-LAST:event_tbl_userMouseClicked
+
+    private void btn_backLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_backLoginActionPerformed
+        this.dispose(); // tutup form saat ini
+        LoginForm login = new LoginForm();
+        login.setExtendedState(JFrame.MAXIMIZED_BOTH); // fullscreen
+        login.setVisible(true); // tampilkan
+    }//GEN-LAST:event_btn_backLoginActionPerformed
+
+    public static void main(String args[]) {
+        java.awt.EventQueue.invokeLater(() -> {
+            String username = "admin"; // ganti dengan username yang login
+
+            if (CreateForm.isSuperAdmin(username)) {
+                // Tutup semua jendela sebelum membuka CreateForm
+                for (java.awt.Window window : java.awt.Window.getWindows()) {
+                    window.dispose();
+                }
+
+                // Buka CreateForm dalam mode fullscreen
+                CreateForm form = new CreateForm(username);
+                form.setExtendedState(JFrame.MAXIMIZED_BOTH); // Fullscreen
+                form.setVisible(true);
+
+            } else {
+                JOptionPane.showMessageDialog(null, "Akses ditolak. Hanya superadmin yang diperbolehkan.");
+                // Tutup semua form, kembali ke LoginForm
+                for (java.awt.Window window : java.awt.Window.getWindows()) {
+                    window.dispose();
+                }
+                LoginForm form = new LoginForm();
+                form.setExtendedState(JFrame.MAXIMIZED_BOTH); // Fullscreen
+                form.setVisible(true); // Panggil setVisible pada instance yang sudah diset fullscreen
             }
         });
     }
 
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btn_backLogin;
+    private javax.swing.JToggleButton btn_delete;
+    private javax.swing.JToggleButton btn_edit;
     private javax.swing.JButton btn_submit;
+    private javax.swing.JToggleButton btn_update;
     private javax.swing.JPasswordField confirmpasswordTXT;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
@@ -439,15 +612,130 @@ public class CreateForm extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JSeparator jSeparator1;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JToggleButton jToggleButton1;
-    private javax.swing.JToggleButton jToggleButton2;
-    private javax.swing.JToggleButton jToggleButton3;
+    private javax.swing.JScrollPane jscroll;
     private javax.swing.JPasswordField passwordTXT;
     private javax.swing.JTextField phonenumberTXT;
-    private javax.swing.JScrollPane tbl_user;
+    private javax.swing.JTable tbl_user;
     private javax.swing.JTextField usernameTXT;
     // End of variables declaration//GEN-END:variables
+// Memuat data user dari MongoDB ke dalam tabel
 
+    private void loadUserData() {
+        try {
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("user");
+            try (MongoCursor<Document> cursor = collection.find().iterator()) {
 
+                DefaultTableModel model = (DefaultTableModel) tbl_user.getModel();
+                model.setRowCount(0); // Bersihkan tabel
+
+                boolean superadminFound = false;
+
+                while (cursor.hasNext()) {
+                    Document doc = cursor.next();
+                    String username = doc.getString("username") != null ? doc.getString("username") : "";
+                    if ("superadmin".equalsIgnoreCase(username)) {
+                        superadminFound = true;
+                    }
+                    Vector<Object> row = new Vector<>();
+                    row.add(doc.getObjectId("_id").toString());
+                    row.add(username);
+                    row.add(doc.getString("phone") != null ? doc.getString("phone") : "");
+                    model.addRow(row);
+                }
+
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal memuat data user: " + e.getMessage());
+        }
+    }
+
+// Membuat user baru ke database
+    private void createUser(String username, String phone, String password) {
+        try {
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("user");
+
+            Document newUser = new Document("username", username)
+                    .append("phone", phone)
+                    .append("password", password);
+
+            collection.insertOne(newUser);
+            loadUserData(); // Refresh tabel
+
+            JOptionPane.showMessageDialog(this, "User berhasil dibuat!");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal membuat user: " + e.getMessage());
+        }
+    }
+
+// Menghapus user berdasarkan ID
+    private void deleteUser(String id) {
+        if (id == null || id.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "ID user tidak valid.");
+            return;
+        }
+
+        try {
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("user");
+            collection.deleteOne(new Document("_id", new ObjectId(id)));
+
+            loadUserData(); // Refresh tabel
+            JOptionPane.showMessageDialog(this, "User berhasil dihapus!");
+        } catch (IllegalArgumentException iae) {
+            JOptionPane.showMessageDialog(this, "ID user tidak valid: " + iae.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal menghapus user: " + e.getMessage());
+        }
+    }
+
+// Submit form untuk membuat user baru dengan validasi
+    private void submit() {
+        String username = usernameTXT.getText().trim();
+        String phone = phonenumberTXT.getText().trim();
+        String password = new String(passwordTXT.getPassword());
+        String confirmPassword = new String(confirmpasswordTXT.getPassword());
+
+        if (username.isEmpty() || phone.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Semua field harus diisi!");
+            return;
+        }
+
+        if (!password.equals(confirmPassword)) {
+            JOptionPane.showMessageDialog(this, "Password dan konfirmasi password tidak sama!");
+            return;
+        }
+
+        try {
+            MongoCollection<Document> collection = ConnectionDB.connect().getCollection("user");
+
+            Document existingUser = collection.find(new Document("username", username)).first();
+            if (existingUser != null) {
+                JOptionPane.showMessageDialog(this, "Username sudah digunakan, pilih username lain.");
+                return;
+            }
+
+            String hashedPassword = hashPassword(password);
+
+            Document newUser = new Document("username", username)
+                    .append("phone", phone)
+                    .append("password", hashedPassword);
+
+            collection.insertOne(newUser);
+
+            JOptionPane.showMessageDialog(this, "User berhasil dibuat!");
+            clearForm();
+            loadUserData();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal membuat user: " + e.getMessage());
+        }
+    }
+
+// Mengosongkan form input
+    private void clearForm() {
+        usernameTXT.setText("");
+        phonenumberTXT.setText("");
+        passwordTXT.setText("");
+        confirmpasswordTXT.setText("");
+        usernameTXT.requestFocusInWindow();
+    }
 }

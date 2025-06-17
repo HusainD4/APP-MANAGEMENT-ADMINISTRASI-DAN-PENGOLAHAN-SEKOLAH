@@ -8,6 +8,14 @@ package ui;
  *
  * @author HUSAIN
  */
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import db.ConnectionDB;
+import org.bson.Document;
+import org.mindrot.jbcrypt.BCrypt;
+
+import javax.swing.*;
+
 public class LoginKeyMaster extends javax.swing.JDialog {
 
     /**
@@ -51,7 +59,7 @@ public class LoginKeyMaster extends javax.swing.JDialog {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 303, Short.MAX_VALUE)
+                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
@@ -66,16 +74,20 @@ public class LoginKeyMaster extends javax.swing.JDialog {
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
 
+        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel2.setText("-------------------------- KEY ----------------------------");
 
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel3.setText("-------------------------- PASS ---------------------------");
 
+        NameKeyAdminTXT.setText("husain1");
         NameKeyAdminTXT.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 NameKeyAdminTXTActionPerformed(evt);
             }
         });
 
+        PasswordKeyAdminTXT.setText("husain123");
         PasswordKeyAdminTXT.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 PasswordKeyAdminTXTActionPerformed(evt);
@@ -102,7 +114,7 @@ public class LoginKeyMaster extends javax.swing.JDialog {
                     .addComponent(btn_submitKeyAdmin, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(PasswordKeyAdminTXT, javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(NameKeyAdminTXT)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 312, Short.MAX_VALUE)
                     .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
@@ -118,8 +130,8 @@ public class LoginKeyMaster extends javax.swing.JDialog {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(PasswordKeyAdminTXT, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btn_submitKeyAdmin, javax.swing.GroupLayout.DEFAULT_SIZE, 42, Short.MAX_VALUE)
-                .addContainerGap())
+                .addComponent(btn_submitKeyAdmin, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
@@ -128,7 +140,46 @@ public class LoginKeyMaster extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_submitKeyAdminActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_submitKeyAdminActionPerformed
-        // TODO add your handling code here:
+        String username = new String(NameKeyAdminTXT.getPassword()).trim();
+        String password = new String(PasswordKeyAdminTXT.getPassword()).trim();
+
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Semua field harus diisi!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            MongoDatabase db = ConnectionDB.connect();
+            MongoCollection<Document> users = db.getCollection("master");
+
+            Document adminDoc = users.find(new Document("username", username)).first();
+
+            if (adminDoc == null) {
+                JOptionPane.showMessageDialog(this, "Akun admin master tidak ditemukan!", "Akses Ditolak", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String hashedPassword = adminDoc.getString("password");
+
+            if (!BCrypt.checkpw(password, hashedPassword)) {
+                JOptionPane.showMessageDialog(this, "Password salah!", "Akses Ditolak", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Jika lolos verifikasi admin master
+            JOptionPane.showMessageDialog(this, "Akses diterima. Selamat datang, Admin Master!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            this.dispose();
+
+            // Tampilkan CreateForm
+            
+            CreateForm form = new CreateForm(username);
+            form.setExtendedState(JFrame.MAXIMIZED_BOTH); // Fullscreen
+            form.setVisible(true);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Kesalahan sistem: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_btn_submitKeyAdminActionPerformed
 
     private void NameKeyAdminTXTActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NameKeyAdminTXTActionPerformed
@@ -167,17 +218,9 @@ public class LoginKeyMaster extends javax.swing.JDialog {
         //</editor-fold>
 
         /* Create and display the dialog */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                LoginKeyMaster dialog = new LoginKeyMaster(new javax.swing.JFrame(), true);
-                dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-                    @Override
-                    public void windowClosing(java.awt.event.WindowEvent e) {
-                        System.exit(0);
-                    }
-                });
-                dialog.setVisible(true);
-            }
+        java.awt.EventQueue.invokeLater(() -> {
+            LoginKeyMaster dialog = new LoginKeyMaster(new javax.swing.JFrame(), true);
+            dialog.setVisible(true);
         });
     }
 
